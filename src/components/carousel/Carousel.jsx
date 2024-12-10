@@ -1,175 +1,166 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
-import IconButton from "@mui/material/IconButton";
-import Button from "@mui/material/Button";
-import { Link } from "react-router-dom";
-import API_URL from "../../utils/api"
+// Импорт необходимых библиотек и компонентов
+import React from "react"; 
+import { useForm } from "react-hook-form"; // Хук для управления формами
+import { useDispatch } from "react-redux"; // Для использования действий Redux
+import { openModal } from '../../redux/modalSlice'; // Импорт действия для открытия модального окна
+import { clearCart } from '../../redux/cartSlice'; // Импорт действия для очистки корзины
+import axios from "axios"; // Для отправки HTTP-запросов
+import API_URL from "../../utils/api"; // Базовый URL API
+import { TextField, Button, Snackbar, Alert, CircularProgress } from "@mui/material"; // Компоненты интерфейса из MUI
 
-function Carousel() {
-  const [images, setImages] = useState([]);
-  const [activeStep, setActiveStep] = useState(0);
-  const theme = useTheme();
-  const isXl = useMediaQuery(theme.breakpoints.up("xl"));
-  const isSm = useMediaQuery(theme.breakpoints.between("sm", "md"));
-  const isMd = useMediaQuery(theme.breakpoints.between("md", "lg"));
-  const isLg = useMediaQuery(theme.breakpoints.between("lg", "xl"));
 
-  let imagesPerView;
+// Функциональный компонент формы оформления заказа
+function FormCart({ orderData, form = {}, onInputChange }) {
+    // Инициализация хуков
+    const { register, handleSubmit, formState } = useForm(); // Хук управления формой
+    const [showAlert, setShowAlert] = React.useState(false); // Состояние отображения уведомления
+    const [isLoading, setIsLoading] = React.useState(false); // Состояние загрузки
+    const [isSubmitted, setIsSubmitted] = React.useState(false); // Состояние успешной отправки
+    const dispatch = useDispatch(); // Использование dispatch для отправки действий в Redux
 
-  if (isLg || isXl) {
-    imagesPerView = 4;
-  } else if (isMd) {
-    imagesPerView = 3;
-  } else if (isSm) {
-    imagesPerView = 2;
-  } else {
-    imagesPerView = 1;
-  }
+    const { errors } = formState; // Доступ к ошибкам валидации
 
-  useEffect(() => {
-    axios.get(`${API_URL}/categories/all`)
-      .then(response => {
-        setImages(response.data);
-      })
-      .catch(error => {
-        console.error("There was an error fetching the data!", error);
-      });
-  }, []);
+    // Обработчик отправки формы
+    const onSubmit = async (data) => {
+        setIsLoading(true); // Включение индикатора загрузки
+        try {
+            // Отправка данных на сервер
+            const response = await axios.post(`${API_URL}/order/send`, {
+                ...data, // Данные из формы
+                products: orderData.products, // Продукты из корзины
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            console.log(response.data); // Логирование ответа сервера
+            setShowAlert(true); // Показ уведомления об успешной отправке
+            setIsSubmitted(true); // Установка состояния отправки
+            setTimeout(() => {
+                setShowAlert(false); // Скрытие уведомления через 3 секунды
+            }, 3000);
+            handlePlaceOrder(); // Вызов обработчика завершения заказа
+        } catch (error) {
+            console.error('Error submitting form', error); // Логирование ошибки
+        } finally {
+            setIsLoading(false); // Выключение индикатора загрузки
+        }
+    };
 
-  const maxSteps = images.length;
-
-  const handleNext = () => {
-    setActiveStep((prevActiveStep) => (prevActiveStep + 1) % maxSteps);
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => (prevActiveStep - 1 + maxSteps) % maxSteps);
-  };
-
-  const getDisplayImages = () => {
-    const startIndex = activeStep;
-    const endIndex = (activeStep + imagesPerView) % maxSteps;
-    if (endIndex > startIndex) {
-      return images.slice(startIndex, endIndex);
-    } else {
-      return [...images.slice(startIndex, maxSteps), ...images.slice(0, endIndex)];
+    // Обработчик завершения оформления заказа
+    function handlePlaceOrder() {
+        dispatch(openModal({ title: "Congratulations!" })); // Открытие модального окна с поздравлением
+        setTimeout(() => { dispatch(clearCart()); }, 1000); // Очистка корзины через секунду
     }
-  };
 
-  return (
-    <Box sx={{ maxWidth: 1440, flexGrow: 1, m: "0 auto", my: 10, p: "0 16px" }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          mx: 3,
-          mb: 5,
-        }}
-      >
-         <Typography
-          variant="h3"
-          sx={{
-            fontSize: "clamp(28px, 6vw, 64px)",
-            fontWeight: 700,
-            textAlign: "left",
-            mr: 3,
-          }}
-        >
-          Categories
-        </Typography>
-        <Box sx={{ width: "100%", borderBottom: "1px solid #DDDDDD" }}></Box>
-        <Link to="/categories"><Box
-          sx={{
-            whiteSpace: "nowrap",
-            fontSize: "clamp(10px, 1.5vw, 16px)",
-            fontWeight: 500,
-            color: "#8B8B8B",
-            border: "1px solid #DDDDDD",
-            borderRadius: "6px",
-            padding: "8px 16px",
-            minWidth: "fit-content",
-            ":hover": { backgroundColor: "#F1F3F4" },
-            ":active": { color: "#282828" },
-          }}
-        >
-          All categories
-        </Box></Link>
-      </Box>
-      <Box sx={{ position: "relative", px:1 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between"}}>
-          {getDisplayImages().map((step, index) => (
-            <Box
-              key={step.id}
-              sx={{
-                flex: 1,
-                mx: 2,
-                textAlign: "center",
-              }}
-            >
-              <Link to={`/categories/${step.id}`}>
-                <Box
-                  component="img"
-                  sx={{
-                    height: "350px",
-                    width: "100%",
-                    borderRadius: "8px",
-                    objectFit: "cover",
-                  }}
-                  src={`${API_URL}${step.image}`}
-                  alt={step.title}
+    // Значения полей из пропсов (или пустые строки по умолчанию)
+    const nameValue = form?.name || ""; 
+    const phoneValue = form?.phone || "";
+    const emailValue = form?.email || "";
+
+    return (
+        <div className={styles.Form_form}> {/* Контейнер формы */}
+            <form onSubmit={handleSubmit(onSubmit)}> {/* Форма с обработчиком отправки */}
+                {/* Поле для имени */}
+                <TextField 
+                    {...register("name", { // Регистрация поля в React Hook Form
+                        required: "Name is required", // Валидация: обязательное поле
+                        minLength: {
+                            value: 2,
+                            message: "Name must be at least 2 characters", // Ошибка валидации
+                        },
+                    })}
+                    error={!!errors.name} // Подсветка ошибок
+                    helperText={errors.name && errors.name.message} // Текст ошибки
+                    label="Name" // Метка поля
+                    variant="outlined" // Внешний вид
+                    fullWidth // Полная ширина
+                    margin="dense" // Уменьшенные отступы
+                    value={nameValue} // Текущее значение поля
+                    onChange={onInputChange} // Обработчик изменения
+                    name="name" 
+                    FormHelperTextProps={{
+                        style: { fontSize: "20px" }, // Настройка стиля текста ошибок
+                    }}
                 />
+                {/* Поле для телефона */}
+                <TextField
+                    {...register("phone", { 
+                        required: "Phone is required", 
+                        minLength: {
+                            value: 10,
+                            message: "Phone must be at least 10 characters",
+                        },
+                    })}
+                    error={!!errors.phone}
+                    helperText={errors.phone && errors.phone.message}
+                    label="Phone"
+                    variant="outlined"
+                    fullWidth
+                    margin="dense"
+                    value={phoneValue}
+                    onChange={onInputChange}
+                    name="phone"
+                    FormHelperTextProps={{
+                        style: { fontSize: "20px" },
+                    }}
+                />
+                {/* Поле для email */}
+                <TextField
+                    {...register("email", { 
+                        required: "Email is required",
+                        pattern: {
+                            value: /\S+@\S+\.\S+/,
+                            message: "Entered value does not match email format",
+                        },
+                    })}
+                    error={!!errors.email}
+                    helperText={errors.email && errors.email.message}
+                    label="Email"
+                    variant="outlined"
+                    fullWidth
+                    margin="dense"
+                    value={emailValue}
+                    onChange={onInputChange}
+                    name="email"
+                    FormHelperTextProps={{
+                        style: { fontSize: "20px" },
+                    }}
+                />
+                {/* Кнопка отправки */}
                 <Button
-                  href="#outlined-buttons"
-                  sx={{
-                    mt: 2,
-                    color: "#282828",
-                    fontSize: "clamp(12px, 1.8vw, 20px)",
-                    fontWeight: 500,
-                    textTransform: "none",
-                    ":hover": { textDecoration: "underline" },
-                    ":active": { color: "#DDDDDD" },
-                  }}
+                    className={styles.btnCartForm}
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={isLoading} // Отключение кнопки во время загрузки
+                    endIcon={isLoading && <CircularProgress size={20} />} // Индикатор загрузки
+                    sx={{
+                        textTransform: 'none',
+                        fontSize: "20px",
+                        mt: 2,
+                        width: "100%",
+                        height: "58px",
+                        backgroundColor: isSubmitted ? "#FFFFFF" : "#0D50FF",
+                        color: isSubmitted ? "#282828" : "#FFFFFF",
+                        border: isSubmitted ? "1px solid #282828" : "none",
+                        "&:hover": {
+                            backgroundColor: "#282828",
+                            color: "#FFFFFF",
+                        },
+                    }}
                 >
-                  {step.title}
+                    {isSubmitted ? "The Order is Placed" : isLoading ? "Submitting..." : "Order"} {/* Изменение текста кнопки */}
                 </Button>
-              </Link>
-            </Box>
-          ))}
-        </Box>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "40%",
-            left: 0,
-            transform: "translateY(-50%)",
-          }}
-        >
-          <IconButton onClick={handleBack}>
-            <KeyboardArrowLeft />
-          </IconButton>
-        </Box>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "40%",
-            right: 0,
-            transform: "translateY(-50%)"
-          }}
-        >
-          <IconButton onClick={handleNext}>
-            <KeyboardArrowRight />
-          </IconButton>
-        </Box>
-      </Box>
-    </Box>
-  );
+            </form>
+            {/* Уведомление об успешной отправке */}
+            {showAlert && (
+                <Snackbar open={showAlert}>
+                    <Alert severity="success">Form submitted successfully!</Alert>
+                </Snackbar>
+            )}
+        </div>
+    );
 }
 
-export default Carousel;
+export default FormCart; // Экспорт компонента

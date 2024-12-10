@@ -1,32 +1,39 @@
 import { useSearchParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import styles from "./Filter.module.css";
 import checkbox from "../../assets/checkbox.svg";
 import checkedImg from "../../assets/checked.svg";
 import { ArrowVerticalIcon } from "../icons/ui";
 
 const Filter = ({ includedDiscount }) => {
-  
   const [searchParams, setSearchParams] = useSearchParams();
   const [showDropdown, setShowDropdown] = useState(false);
-  const nameParams = {
-    default: "by default",
-    newest: "newest",
-    priceHighToLow: "price: high-low",
-    priceLowToHigh: "price: low-high",
-  };
 
-  function handleChange(e) {
+  // Названия для сортировки
+  const nameParams = useMemo(
+    () => ({
+      default: "by default",
+      newest: "newest",
+      priceHighToLow: "price: high-low",
+      priceLowToHigh: "price: low-high",
+    }),
+    []
+  );
+
+  // Обработка изменения значений в параметрах поиска
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set(name, type === "checkbox" ? String(checked) : value);
     setSearchParams(newSearchParams);
-  }
-
-  const handleSelectClick = () => {
-    setShowDropdown(!showDropdown);
   };
 
+  // Обработка клика по выпадающему списку сортировки
+  const handleSelectClick = () => {
+    setShowDropdown((prevState) => !prevState);
+  };
+
+  // Обработка выбора параметра сортировки
   const handleOptionClick = (value) => {
     handleChange({ target: { name: "sortType", value, type: "select" } });
     setShowDropdown(false);
@@ -34,6 +41,7 @@ const Filter = ({ includedDiscount }) => {
 
   return (
     <div className={styles.Filter}>
+      {/* Фильтр по цене */}
       <div className={styles.Filter_Price_box}>
         <label className={styles.Filter_Price_label}>
           Price
@@ -56,8 +64,10 @@ const Filter = ({ includedDiscount }) => {
           onChange={handleChange}
         />
       </div>
-        {includedDiscount !== "off" && (
-      <div className={styles.Filter_includeDiscount_box}>
+
+      {/* Фильтр по скидке */}
+      {includedDiscount !== "off" && (
+        <div className={styles.Filter_includeDiscount_box}>
           <label className={styles.Filter_includeDiscount_label}>
             Include discount
             <input
@@ -77,8 +87,10 @@ const Filter = ({ includedDiscount }) => {
               alt="checkbox"
             />
           </label>
-      </div>
-        )}
+        </div>
+      )}
+
+      {/* Выпадающий список для сортировки */}
       <div
         className={`${styles.Filter_sortType_box} ${
           showDropdown ? styles.Filter_select_open : ""
@@ -114,3 +126,4 @@ const Filter = ({ includedDiscount }) => {
 };
 
 export default Filter;
+
