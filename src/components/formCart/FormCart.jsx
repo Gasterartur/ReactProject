@@ -89,7 +89,7 @@ function Form() {
   };
 
   return (
-    <div className={styles.Form_form}>
+    <div>
       <form onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: "516px" }}>
         {/* Я создаю поле ввода имени */}
         <TextField
